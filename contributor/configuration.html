@@ -198,10 +198,11 @@ html += `
                             <thead>
                                 <tr>
                                     <th style="width: 10%;">Rang</th>
-                                    <th style="width: 40%;">Nom de l'équipe</th>
-                                    <th style="width: 20%;">Site Internet</th>
-                                    <th style="width: 20%;">GLPI en ligne</th>
-                                    <th style="width: 10%;">Score</th>
+                                    <th style="width: 30%;">Nom de l'équipe</th>
+                                    <th style="width: 15%;">Lien Trello</th>
+                                    <th style="width: 15%;">Site Internet</th>
+                                    <th style="width: 15%;">GLPI en ligne</th>
+                                    <th style="width: 15%;">Score</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -211,6 +212,11 @@ teams.forEach((team, index) => {
 const scoreDisplay = team.score !== null ? `<span class="score-value">${
 team.score
 }</span>` : `<span class="no-score">N/A</span>`;
+
+// Trello Link
+const trelloDisplay = (team.trello && team.trello.trim() !== "") ? `<a href="${
+team.trello
+}" target="_blank" style="color:#3498db; text-decoration:none; font-weight:500;">Voir le Trello 🔗</a>` : `<span style="color:#ccc;">-</span>`;
 
 // Website Link
 const siteDisplay = (team.site_internet && team.site_internet.trim() !== "") ? `<a href="${
@@ -239,6 +245,7 @@ html += `
                                 <td style="font-weight:600;">${
 team.equipe || 'Sans nom'
 }</td>
+                                <td>${trelloDisplay}</td>
                                 <td>${siteDisplay}</td>
                                 <td>${glpiDisplay}</td>
                                 <td>${scoreDisplay}</td>
