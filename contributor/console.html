@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo console</title>
+    <script src="https://cdn.jsdelivr.net/gh/educentre-integration/libraries@v1.0/activity/bridge.min.js"></script>
+</head>
+
+<body>
+    <h1>Console de l'activité pédagogique</h1>
+    <div>La database est par groupe et par activité pédagogique</div>
+    <textarea id="database"></textarea>
+    <div>
+        <button onclick="load()">Charger la database</button>
+    </div>
+    <div>
+        <button onclick="save()">Enregistrer la partie storage</button>
+    </div>
+
+    <script>
+        const eda = new EducentreActivityBridge();
+
+        function load() {
+            eda.getDatabase((database) => {
+                console.log(database);
+                const databaseToDisplay = JSON.stringify(database); // storage is an object
+                document.querySelector('#database').value = databaseToDisplay;
+
+            });
+        }
+
+        function save() {
+            const databaseToDisplay = document.querySelector('#database').value;
+            const database = JSON.parse(databaseToDisplay);
+            const storage = database.storage;
+            storage.newField = 'new value';
+            eda.saveStorage(storage, (response) => {
+                console.log(response);
+            });
+        }
+
+    </script>
+</body>
+
+</html>

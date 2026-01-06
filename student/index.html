@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Demo activity</title>
+		<script src="https://cdn.jsdelivr.net/gh/educentre-integration/libraries@v1.0/activity/bridge.min.js"></script>
+	</head>
+
+	<body>
+		<style>
+			body {
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+				background-color: #f4f6f8;
+				color: #333;
+				max-width: 1200px;
+				margin: 0 auto;
+				padding: 20px;
+			}
+
+			h1 {
+				color: #2c3e50;
+				text-align: center;
+				margin-bottom: 30px;
+			}
+
+			button {
+				background-color: #3498db;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 4px;
+				cursor: pointer;
+				transition: background-color 0.3s;
+				font-size: 14px;
+				margin: 5px;
+			}
+
+			button:hover {
+				background-color: #2980b9;
+			}
+
+			/* Table Styles */
+			.score-table-container {
+				margin-top: 30px;
+				overflow-x: auto;
+			}
+
+			.score-table {
+				width: 100%;
+				border-collapse: collapse;
+				background: white;
+				border-radius: 8px;
+				overflow: hidden;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+				margin-bottom: 30px;
+			}
+
+			.score-table thead {
+				background-color: #2c3e50;
+				color: white;
+			}
+
+			.score-table th,
+			.score-table td {
+				padding: 12px 15px;
+				text-align: left;
+				border-bottom: 1px solid #eee;
+			}
+
+			.score-table th {
+				font-weight: 600;
+				text-transform: uppercase;
+				font-size: 0.85rem;
+				letter-spacing: 0.5px;
+			}
+
+			.score-table tbody tr:hover {
+				background-color: #f8f9fa;
+			}
+
+			.score-table tbody tr:last-child td {
+				border-bottom: none;
+			}
+
+			.score-value {
+				font-weight: bold;
+				color: #27ae60;
+			}
+
+			.no-score {
+				color: #95a5a6;
+				font-style: italic;
+			}
+
+			#student-fullname {
+				font-size: 1.2rem;
+				font-weight: bold;
+				color: #2c3e50;
+				margin: 10px 0;
+				text-align: center;
+			}
+		</style>
+
+		<h1>Tableau des scores</h1>
+		<div id="student-fullname"></div>
+		<div style="text-align: center;">
+			<button onclick="loadScores()">Actualiser les scores</button>
+		</div>
+
+		<div id="scores-view" class="score-table-container"></div>
+
+		<script>
+			const edac = new EducentreActivityBridge();
+
+// Load scores immediately on start
+window.addEventListener('load', () => {
+console.log("Window loaded, initializing scores...");
+loadScores();
+start(); // Also fetch student name
+});
+
+function start() {
+edac.getDatabase((response) => { // response.student might be undefined if not logged in context, check safely
+if (response && response.student) {
+document.querySelector('#student-fullname').innerHTML = "Étudiant: " + response.student.fullname;
+}
+});
+}
+
+function loadScores() {
+console.log("Fetching configuration...");
+edac.getDatabase((response) => {
+console.log("Full Response:", response);
+
+// The user mentioned the data comes in response.configuration
+// And it might be an array wrapping the actual config object with the groups
+let configData = response.configuration;
+
+if (! configData) {
+console.warn("No configuration found.");
+document.getElementById('scores-view').innerHTML = '<div style="text-align:center; padding:20px; color: #7f8c8d;">Aucune configuration chargée.</div>';
+return;
+}
+
+// Handle array wrapper if present (as per user log: Array(1) -> 0: {BTS_SIO_1...})
+if (Array.isArray(configData) && configData.length > 0) {
+configData = configData[0];
+}
+
+renderTable(configData);
+});
+}
+
+function renderTable(data) {
+const container = document.getElementById('scores-view');
+
+if (! data || typeof data !== 'object') {
+container.innerHTML = '<div style="text-align:center; color:#e74c3c; padding:20px;">Données invalides ou vides.</div>';
+return;
+}
+
+let html = '';
+let hasAnyData = false;
+
+// Iterate over each group to create a separate table
+Object.entries(data).forEach(([groupName, teams]) => {
+if (Array.isArray(teams) && teams.length > 0) {
+hasAnyData = true;
+
+// Copie pour trier
+let sortedTeams = [...teams];
+
+// Sort teams by score descending
+sortedTeams.sort((a, b) => {
+const scoreA = (a.score === null || a.score === undefined) ? -1 : a.score;
+const scoreB = (b.score === null || b.score === undefined) ? -1 : b.score;
+return scoreB - scoreA;
+});
+
+// Add Group Header
+html += `<h3 style="margin-top: 30px; margin-bottom: 10px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; display: inline-block;">${groupName}</h3>`;
+
+// Start Table
+html += `
+                            <table class="score-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">Rang</th>
+                                        <th style="width: 40%;">Nom de l'équipe</th>
+                                        <th style="width: 20%;">Site Internet</th>
+                                        <th style="width: 20%;">GLPI en ligne</th>
+                                        <th style="width: 10%;">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+
+sortedTeams.forEach((team, index) => {
+const scoreDisplay = team.score !== null ? `<span class="score-value">${
+team.score
+}</span>` : `<span class="no-score">N/A</span>`;
+
+// Website Link
+const siteDisplay = (team.site_internet && team.site_internet.trim() !== "") ? `<a href="${
+team.site_internet
+}" target="_blank" style="color:#2ecc71; text-decoration:none; font-weight:500;">Voir le Site 🌐</a>` : `<span style="color:#ccc;">-</span>`;
+
+// GLPI Link
+const glpiDisplay = (team.glpi && team.glpi.trim() !== "") ? `<a href="${
+team.glpi
+}" target="_blank" style="color:#e67e22; text-decoration:none; font-weight:500;">Voir le GLPI 🛠️</a>` : `<span style="color:#ccc;">-</span>`;
+
+// Add medals for top 3
+let rankDisplay = index + 1;
+if (index === 0) 
+rankDisplay = '🥇 ' + rankDisplay;
+ else if (index === 1) 
+rankDisplay = '🥈 ' + rankDisplay;
+ else if (index === 2) 
+rankDisplay = '🥉 ' + rankDisplay;
+
+
+
+html += `
+                                <tr>
+                                    <td style="font-weight:bold; color:#7f8c8d;">${rankDisplay}</td>
+                                    <td style="font-weight:600;">${
+team.equipe || 'Sans nom'
+}</td>
+                                    <td>${siteDisplay}</td>
+                                    <td>${glpiDisplay}</td>
+                                    <td>${scoreDisplay}</td>
+                                </tr>
+                            `;
+});
+
+html += '</tbody></table>';
+}
+});
+
+if (! hasAnyData) {
+html = '<div style="text-align:center; padding: 20px;">Aucune donnée de groupe trouvée.</div>';
+}
+
+container.innerHTML = html;
+}
+		</script>
+	</body>
+
+</html>
