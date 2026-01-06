@@ -105,9 +105,6 @@
 
 		<h1>Tableau des scores</h1>
 		<div id="student-fullname"></div>
-		<div style="text-align: center;">
-			<button onclick="loadScores()">Actualiser les scores</button>
-		</div>
 
 		<div id="scores-view" class="score-table-container"></div>
 
@@ -124,7 +121,7 @@ start(); // Also fetch student name
 function start() {
 edac.getDatabase((response) => { // response.student might be undefined if not logged in context, check safely
 if (response && response.student) {
-document.querySelector('#student-fullname').innerHTML = "Étudiant: " + response.student.fullname;
+document.querySelector('#student-fullname').innerHTML = "Hello, " + response.student.fullname + " 👋";
 }
 });
 }
